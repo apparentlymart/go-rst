@@ -32,6 +32,7 @@ type structureModelParser struct {
 	appendBody      func(BodyElement, Position)
 	appendStructure func(StructureElement, Position)
 	appendMixed     func(interface{}, Position)
+	blockQuoteBody  func(Position)
 
 	// used when parsing blockquote bodies, to capture the attribution.
 	// if nil, attributions are not parsed.
@@ -59,6 +60,24 @@ func (m *structureModelParser) parse(endType TokenType) {
 				Pos:     next.Position,
 			}, next.Position)
 			break
+		}
+
+		if next.Type == INDENT {
+			startPos := next.Position
+			blockQuoteElem := p.parseBlockQuote(DEDENT)
+			m.appendBody(blockQuoteElem, startPos)
+			continue
+		}
+
+		if next.Type == LATE_INDENT {
+			// This is a signal from the scanner that it has encountered
+			// a new indent level between whatever we just dealt with and
+			// its preceding indent. This indicates that everything we've
+			// seen so far was actually inside a blockquote, so we now
+			// need to restructure the DOM to reflect that.
+			p.Read() // eat LATE_INDENT token
+			m.blockQuoteBody(next.Position)
+			continue
 		}
 
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
@@ -94,6 +113,13 @@ func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
 		parser: p,
 		appendBody: func(elem BodyElement, pos Position) {
 			body = append(body, elem)
+		},
+		blockQuoteBody: func(pos Position) {
+			body = Body{
+				&BlockQuote{
+					Quote: body,
+				},
+			}
 		},
 		appendStructure: func(elem StructureElement, pos Position) {
 			// transition into structure context
@@ -136,6 +162,13 @@ func (p *parser) parseBody(endType TokenType) Body {
 		appendBody: func(elem BodyElement, pos Position) {
 			body = append(body, elem)
 		},
+		blockQuoteBody: func(pos Position) {
+			body = Body{
+				&BlockQuote{
+					Quote: body,
+				},
+			}
+		},
 		appendStructure: func(elem StructureElement, pos Position) {
 			body = append(body, &Error{
 				Message: "structure elements may not appear here",
@@ -149,6 +182,49 @@ func (p *parser) parseBody(endType TokenType) Body {
 	model.parse(endType)
 
 	return body
+}
+
+func (p *parser) parseBlockQuote(endType TokenType) BodyElement {
+	indent := p.Read()
+	if indent.Type != INDENT {
+		// should never happen, given a correct caller
+		panic("parseBlockQuote called when block quote can't start")
+	}
+
+	var body Body
+	var attribution Text
+
+	var model structureModelParser
+	model = structureModelParser{
+		parser: p,
+		appendBody: func(elem BodyElement, pos Position) {
+			body = append(body, elem)
+		},
+		blockQuoteBody: func(pos Position) {
+			body = Body{
+				&BlockQuote{
+					Quote: body,
+				},
+			}
+		},
+		appendStructure: func(elem StructureElement, pos Position) {
+			body = append(body, &Error{
+				Message: "structure elements may not appear here",
+				Pos:     pos,
+			})
+		},
+		appendMixed: func(elem interface{}, pos Position) {
+			model.appendBody(elem.(BodyElement), pos)
+		},
+		setAttribution: func(elem Text, pos Position) {
+			attribution = elem
+		},
+	}
+	model.parse(endType)
+	return &BlockQuote{
+		Quote:       body,
+		Attribution: attribution,
+	}
 }
 
 // parseText reads zero or more sequential LINE tokens, parses the result

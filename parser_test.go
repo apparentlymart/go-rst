@@ -69,6 +69,48 @@ func TestParseFragment(t *testing.T) {
 				},
 			},
 		},
+		{
+			"    blockquote\n    baz",
+			&Fragment{
+				Body: Body{
+					&BlockQuote{
+						Quote: Body{
+							&Paragraph{
+								Text: Text{
+									CharData("blockquote"),
+									CharData("baz"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"    nested-blockquote\n  baz",
+			&Fragment{
+				Body: Body{
+					&BlockQuote{
+						Quote: Body{
+							&BlockQuote{
+								Quote: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("nested-blockquote"),
+										},
+									},
+								},
+							},
+							&Paragraph{
+								Text: Text{
+									CharData("baz"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	spewConfig := &spew.ConfigState{

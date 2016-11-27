@@ -27,3 +27,9 @@ type Paragraph struct {
 	bodyElementImpl
 	Text
 }
+
+type BlockQuote struct {
+	bodyElementImpl
+	Quote       Body
+	Attribution Text
+}
