@@ -99,6 +99,17 @@ func (s *Scanner) Peek() *Token {
 	return s.peek
 }
 
+// SkipBlanks seeks forward through the token stream until the next token
+// is something other than a BLANK.
+//
+// This method uses Peek() internally, so the caveats noted in its
+// documentation apply here too.
+func (s *Scanner) SkipBlanks() {
+	for s.Peek().Type == BLANK {
+		s.Read() // eat blank
+	}
+}
+
 // next produces the next token in the token stream, which will either be
 // a real token obtained from s.nextToken or it will be a synthetic token
 // to adjust the indent level to match s.nextIndent.
