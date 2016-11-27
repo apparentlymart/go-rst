@@ -54,6 +54,8 @@ type Scanner struct {
 
 	peek *Token
 
+	pushBack *Token
+
 	nextIndent int
 	nextToken  *Token
 }
@@ -114,6 +116,14 @@ func (s *Scanner) SkipBlanks() {
 // a real token obtained from s.nextToken or it will be a synthetic token
 // to adjust the indent level to match s.nextIndent.
 func (s *Scanner) next() *Token {
+
+	// If a token has been "pushed back" then it must be dealt with first
+	if s.pushBack != nil {
+		token := s.pushBack
+		s.pushBack = nil
+		return token
+	}
+
 	// Make sure our scanning state is synced and up-to-date
 	s.scan()
 
@@ -362,6 +372,50 @@ func (s *Scanner) LazyIndent() {
 		panic("cannot call LazyIndent with an active peek")
 	}
 	s.lazyIndent = true
+}
+
+// PushBackSuffix pushes a token back into the scanner with a prefix removed
+// from its data.
+//
+// This is used to deal with elements that consists of prefix markers followed
+// by an indented block, such as bullet lists; after detecting a list
+// marker and moving into the list-parsing state, the parser can "push back"
+// the list-introducing token with the list marker removed so that the
+// parser can then transition into a nested body parsing state without
+// "missing" the first line.
+//
+// This will usually be used in conjunction with either PushIndent or
+// LazyIndent so that subsequent lines indented to the same level will be
+// treated as follow-on lines at the same indentation level. PushBackSuffix
+// does not do this automatically, since it can't tell whether PushIndent
+// or LazyIndent is required for a particular case.
+//
+// Only one "pushed back" token can be present at a time. Attempting to push
+// a second one will panic. Thus a caller should *always* read a token before
+// pushing one back, to be sure that there isn't a pushed back token
+// outstanding.
+func (s *Scanner) PushBackSuffix(token *Token, prefixLen int) {
+	if s.pushBack != nil {
+		panic("can't push back when pushed-back token is already present")
+	}
+	if s.peek != nil {
+		panic("can't push back while peeking")
+	}
+	s.pushBack = &Token{
+		Type: token.Type,
+		Data: token.Data[prefixLen:],
+		Position: rst.Position{
+			Line:     token.Position.Line,
+			Column:   token.Position.Column + prefixLen,
+			Filename: token.Position.Filename,
+		},
+	}
+
+	// As a special case, preserve the invariant that a LINE token must
+	// always have something in it, or else it's BLANK.
+	if s.pushBack.Type == LINE && s.pushBack.Data == "" {
+		s.pushBack.Type = BLANK
+	}
 }
 
 func (s *Scanner) currentIndent() int {
