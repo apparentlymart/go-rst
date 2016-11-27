@@ -1,17 +1,15 @@
-package parser
+package rst
 
 import (
 	"bufio"
 	"io"
 	"strings"
-
-	"github.com/apparentlymart/go-rst"
 )
 
 type Token struct {
 	Type     TokenType
 	Data     string
-	Position rst.Position
+	Position Position
 }
 
 type TokenType int
@@ -165,7 +163,7 @@ func (s *Scanner) next() *Token {
 		return &Token{
 			Type: tokenType,
 			Data: strings.Repeat(" ", s.nextIndent),
-			Position: rst.Position{
+			Position: Position{
 				Line:     s.nextToken.Position.Line,
 				Column:   1,
 				Filename: s.nextToken.Position.Filename,
@@ -206,7 +204,7 @@ func (s *Scanner) scan() {
 	if s.nextToken == nil {
 		// Initially position is at the start of the current line.
 		// We will move "Column" later if we find an indented line toke,
-		position := rst.Position{
+		position := Position{
 			Line:     s.line,
 			Column:   1,
 			Filename: s.filename,
@@ -404,7 +402,7 @@ func (s *Scanner) PushBackSuffix(token *Token, prefixLen int) {
 	s.pushBack = &Token{
 		Type: token.Type,
 		Data: token.Data[prefixLen:],
-		Position: rst.Position{
+		Position: Position{
 			Line:     token.Position.Line,
 			Column:   token.Position.Column + prefixLen,
 			Filename: token.Position.Filename,

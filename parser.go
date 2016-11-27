@@ -1,14 +1,12 @@
-package parser
+package rst
 
 import (
 	"io"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/apparentlymart/go-rst"
 )
 
-func ParseFragment(r io.Reader, filename string) *rst.Fragment {
+func ParseFragment(r io.Reader, filename string) *Fragment {
 	scanner := NewScanner(r, filename)
 	p := &parser{scanner}
 	return p.ParseFragment()
@@ -18,17 +16,17 @@ type parser struct {
 	*Scanner
 }
 
-func (p *parser) ParseFragment() *rst.Fragment {
+func (p *parser) ParseFragment() *Fragment {
 	body, structure := p.parseStructureModel(EOF)
-	return &rst.Fragment{
+	return &Fragment{
 		Body:          body,
 		ChildElements: structure,
 	}
 }
 
-func (p *parser) parseStructureModel(endType TokenType) (rst.Body, rst.Structure) {
-	var body rst.Body
-	var structure rst.Structure
+func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
+	var body Body
+	var structure Structure
 	for {
 		p.SkipBlanks()
 
@@ -40,7 +38,7 @@ func (p *parser) parseStructureModel(endType TokenType) (rst.Body, rst.Structure
 		}
 
 		if next.Type == EOF {
-			err := &rst.Error{
+			err := &Error{
 				Message: "unexpected EOF",
 				Pos:     next.Position,
 			}
@@ -54,7 +52,7 @@ func (p *parser) parseStructureModel(endType TokenType) (rst.Body, rst.Structure
 
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
 			if structure != nil {
-				structure = append(structure, &rst.Error{
+				structure = append(structure, &Error{
 					Message: "can't start bullet list after structural",
 					Pos:     next.Position,
 				})
@@ -75,10 +73,10 @@ func (p *parser) parseStructureModel(endType TokenType) (rst.Body, rst.Structure
 	return body, structure
 }
 
-func (p *parser) parseBody(endType TokenType) rst.Body {
+func (p *parser) parseBody(endType TokenType) Body {
 	body, structure := p.parseStructureModel(endType)
 	if structure != nil && len(structure) > 0 {
-		body = append(body, &rst.Error{
+		body = append(body, &Error{
 			Message: "structural element not permitted here",
 			Pos:     structure[0].Position(),
 		})
@@ -119,9 +117,9 @@ func (p *parser) detectBulletListItem(next *Token) (marker rune, indent int) {
 
 }
 
-func (p *parser) parseBulletList(marker rune) rst.BodyElement {
+func (p *parser) parseBulletList(marker rune) BodyElement {
 
-	items := make([]*rst.ListItem, 0, 2)
+	items := make([]*ListItem, 0, 2)
 	for {
 		p.SkipBlanks()
 		next := p.Peek()
@@ -142,10 +140,10 @@ func (p *parser) parseBulletList(marker rune) rst.BodyElement {
 		p.PushBackSuffix(firstLine, indent)
 
 		itemContent := p.parseBody(DEDENT)
-		items = append(items, &rst.ListItem{itemContent})
+		items = append(items, &ListItem{itemContent})
 	}
 
-	return &rst.BulletList{
+	return &BulletList{
 		Items: items,
 	}
 }

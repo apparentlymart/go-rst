@@ -1,4 +1,4 @@
-package parser
+package rst
 
 import (
 	"fmt"
@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/apparentlymart/go-rst"
 )
 
 const testParserFilename = "test.rst"
@@ -16,18 +14,18 @@ const testParserFilename = "test.rst"
 func TestParseFragment(t *testing.T) {
 	tests := []struct {
 		Input string
-		Want  *rst.Fragment
+		Want  *Fragment
 	}{
 		{
 			"",
-			&rst.Fragment{},
+			&Fragment{},
 		},
 		{
 			"*",
-			&rst.Fragment{
-				Body: rst.Body{
-					&rst.BulletList{
-						Items: []*rst.ListItem{
+			&Fragment{
+				Body: Body{
+					&BulletList{
+						Items: []*ListItem{
 							{
 								Body: nil,
 							},
@@ -38,10 +36,10 @@ func TestParseFragment(t *testing.T) {
 		},
 		{
 			"*\n*",
-			&rst.Fragment{
-				Body: rst.Body{
-					&rst.BulletList{
-						Items: []*rst.ListItem{
+			&Fragment{
+				Body: Body{
+					&BulletList{
+						Items: []*ListItem{
 							{
 								Body: nil,
 							},

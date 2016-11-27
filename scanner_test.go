@@ -1,4 +1,4 @@
-package parser
+package rst
 
 import (
 	"fmt"
@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/apparentlymart/go-rst"
 )
 
 const testScannerFilename = "test.rst"
@@ -23,7 +21,7 @@ func TestScanner(t *testing.T) {
 			[]*Token{
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 			},
 		},
@@ -33,11 +31,11 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     BLANK,
 					Data:     "",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 			},
 		},
@@ -47,11 +45,11 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 			},
 		},
@@ -61,16 +59,16 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -80,26 +78,26 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     INDENT,
 					Data:     "    ",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -109,36 +107,36 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     INDENT,
 					Data:     "    ",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 3, Column: 5},
+					Position: Position{Line: 3, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "baz",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 5, Column: 1},
+					Position: Position{Line: 5, Column: 1},
 				},
 			},
 		},
@@ -149,41 +147,41 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "toplevel",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     INDENT,
 					Data:     "    ",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "nested-quote",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 3, Column: 3},
+					Position: Position{Line: 3, Column: 3},
 				},
 				{
 					Type:     LATE_INDENT,
 					Data:     "  ",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "quote",
-					Position: rst.Position{Line: 3, Column: 3},
+					Position: Position{Line: 3, Column: 3},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 			},
 		},
@@ -193,21 +191,21 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     INDENT,
 					Data:     "    ",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 1, Column: 5},
+					Position: Position{Line: 1, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 			},
 		},
@@ -217,26 +215,26 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     INDENT,
 					Data:     "    ",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 5},
+					Position: Position{Line: 1, Column: 5},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -246,21 +244,21 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "- push-indent",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 2, Column: 3},
+					Position: Position{Line: 2, Column: 3},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -270,31 +268,31 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "hello",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "- push-indent",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 3, Column: 3},
+					Position: Position{Line: 3, Column: 3},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 5, Column: 1},
+					Position: Position{Line: 5, Column: 1},
 				},
 			},
 		},
@@ -304,21 +302,21 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -328,26 +326,26 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 2, Column: 5},
+					Position: Position{Line: 2, Column: 5},
 				},
 				{
 					Type:     LINE,
 					Data:     "bar",
-					Position: rst.Position{Line: 3, Column: 5},
+					Position: Position{Line: 3, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 			},
 		},
@@ -357,31 +355,31 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 3, Column: 5},
+					Position: Position{Line: 3, Column: 5},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "baz",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 5, Column: 1},
+					Position: Position{Line: 5, Column: 1},
 				},
 			},
 		},
@@ -391,21 +389,21 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "foo",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -415,16 +413,16 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 			},
 		},
@@ -434,20 +432,20 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     ":lazy-indent:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     DEDENT,
 					Data:     "",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     BLANK,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -456,21 +454,21 @@ func TestScanner(t *testing.T) {
 			[]*Token{
 				{
 					Type:     BLANK,
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "  world",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 			},
 		},
@@ -479,26 +477,26 @@ func TestScanner(t *testing.T) {
 			[]*Token{
 				{
 					Type:     BLANK,
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "  world",
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "baz",
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 5, Column: 1},
+					Position: Position{Line: 5, Column: 1},
 				},
 			},
 		},
@@ -508,29 +506,29 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     INDENT,
 					Data:     "  ",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     BLANK,
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     LINE,
 					Data:     "world",
-					Position: rst.Position{Line: 3, Column: 3},
+					Position: Position{Line: 3, Column: 3},
 				},
 				{
 					Type:     DEDENT,
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 4, Column: 1},
+					Position: Position{Line: 4, Column: 1},
 				},
 			},
 		},
@@ -540,16 +538,16 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "literal:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -559,16 +557,16 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "literal",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -578,16 +576,16 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "literal",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     LITERAL,
 					Data:     "    hello",
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 3, Column: 1},
+					Position: Position{Line: 3, Column: 1},
 				},
 			},
 		},
@@ -597,11 +595,11 @@ func TestScanner(t *testing.T) {
 				{
 					Type:     LINE,
 					Data:     "literal:",
-					Position: rst.Position{Line: 1, Column: 1},
+					Position: Position{Line: 1, Column: 1},
 				},
 				{
 					Type:     EOF,
-					Position: rst.Position{Line: 2, Column: 1},
+					Position: Position{Line: 2, Column: 1},
 				},
 			},
 		},
