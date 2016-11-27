@@ -16,14 +16,21 @@ type StructureElement interface {
 	//
 	// Returns a Structure sequence that might be empty or nil.
 	StructureChildElements() Structure
+
+	Position() Position
 }
 
 type Section struct {
 	Title         Text
 	Body          Body
 	ChildElements Structure
+	Pos           Position
 }
 
 func (s *Section) StructureChildElements() Structure {
 	return s.ChildElements
+}
+
+func (s *Section) Position() Position {
+	return s.Pos
 }

@@ -9,8 +9,13 @@ package rst
 // of a section.
 type Transition struct {
 	bodyElementImpl
+	Pos Position
 }
 
 func (t *Transition) StructureChildElements() Structure {
 	return nil
+}
+
+func (t *Transition) Position() Position {
+	return t.Pos
 }
