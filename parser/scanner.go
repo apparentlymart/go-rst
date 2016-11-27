@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"io"
 	"strings"
+
+	"github.com/apparentlymart/go-rst"
 )
 
 type Token struct {
 	Type     TokenType
 	Data     string
-	Position Position
+	Position rst.Position
 }
 
 type TokenType int
@@ -142,7 +144,7 @@ func (s *Scanner) next() *Token {
 		return &Token{
 			Type: tokenType,
 			Data: strings.Repeat(" ", s.nextIndent),
-			Position: Position{
+			Position: rst.Position{
 				Line:     s.nextToken.Position.Line,
 				Column:   1,
 				Filename: s.nextToken.Position.Filename,
@@ -183,7 +185,7 @@ func (s *Scanner) scan() {
 	if s.nextToken == nil {
 		// Initially position is at the start of the current line.
 		// We will move "Column" later if we find an indented line toke,
-		position := Position{
+		position := rst.Position{
 			Line:     s.line,
 			Column:   1,
 			Filename: s.filename,
