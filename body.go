@@ -22,3 +22,8 @@ type bodyElementImpl struct{}
 func (i *bodyElementImpl) BodyElement() BodyElement {
 	return i
 }
+
+type Paragraph struct {
+	bodyElementImpl
+	Text
+}

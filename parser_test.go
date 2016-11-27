@@ -21,13 +21,19 @@ func TestParseFragment(t *testing.T) {
 			&Fragment{},
 		},
 		{
-			"*",
+			"* foo",
 			&Fragment{
 				Body: Body{
 					&BulletList{
 						Items: []*ListItem{
 							{
-								Body: nil,
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("foo"),
+										},
+									},
+								},
 							},
 						},
 					},
@@ -35,16 +41,28 @@ func TestParseFragment(t *testing.T) {
 			},
 		},
 		{
-			"*\n*",
+			"* foo\n* bar",
 			&Fragment{
 				Body: Body{
 					&BulletList{
 						Items: []*ListItem{
 							{
-								Body: nil,
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("foo"),
+										},
+									},
+								},
 							},
 							{
-								Body: nil,
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("bar"),
+										},
+									},
+								},
 							},
 						},
 					},

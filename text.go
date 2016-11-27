@@ -16,3 +16,10 @@ func (t Text) InlineChildNodes() Text {
 type InlineElement interface {
 	InlineChildNodes() Text
 }
+
+// CharData is an inline markup node that represents plain text.
+type CharData string
+
+func (s CharData) InlineChildNodes() Text {
+	return nil
+}

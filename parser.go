@@ -27,6 +27,40 @@ func (p *parser) ParseFragment() *Fragment {
 func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
 	var body Body
 	var structure Structure
+
+	// The following functions handle the two states that the following
+	// loop can find itself in.
+	var appendBody func(BodyElement, Position)
+	var appendStructure func(StructureElement, Position)
+	var appendMixed func(interface{}, Position)
+
+	// We start off in body context, and then the first time we encounter
+	// structural markup we transition in structural context and these
+	// functions change to respect that state.
+	appendBody = func(elem BodyElement, pos Position) {
+		body = append(body, elem)
+	}
+	appendStructure = func(elem StructureElement, pos Position) {
+		// transition into structure context
+		appendStructure = func(elem StructureElement, pos Position) {
+			structure = append(structure, elem)
+		}
+		appendBody = func(elem BodyElement, pos Position) {
+			appendStructure(&Error{
+				Message: "body elements may not appear after sections",
+				Pos:     pos,
+			}, pos)
+		}
+		appendMixed = func(elem interface{}, pos Position) {
+			appendStructure(elem.(StructureElement), pos)
+		}
+
+		appendStructure(elem, pos)
+	}
+	appendMixed = func(elem interface{}, pos Position) {
+		appendBody(elem.(BodyElement), pos)
+	}
+
 	for {
 		p.SkipBlanks()
 
@@ -38,36 +72,27 @@ func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
 		}
 
 		if next.Type == EOF {
-			err := &Error{
+			appendMixed(&Error{
 				Message: "unexpected EOF",
 				Pos:     next.Position,
-			}
-			if structure != nil {
-				structure = append(structure, err)
-			} else {
-				body = append(body, err)
-			}
+			}, next.Position)
 			break
 		}
 
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
-			if structure != nil {
-				structure = append(structure, &Error{
-					Message: "can't start bullet list after structural",
-					Pos:     next.Position,
-				})
-				break
-			}
+			startPos := next.Position
 			listElem := p.parseBulletList(marker)
-			body = append(body, listElem)
+			appendBody(listElem, startPos)
 			continue
 		}
 
-		// If we manage to get down here then we have something that
-		// isn't valid in structural model context, so we'll produce
-		// an error and then try to recover.
-		// TODO: actually do that, once we have a recovery mechanism
-		panic("structure model can't start here")
+		// If we get down here and still have a LINE token waiting then
+		// we'll interpret what follows as a plain paragraph.
+		if next.Type == LINE {
+			startPos := next.Position
+			text := p.parseText()
+			appendBody(&Paragraph{Text: text}, startPos)
+		}
 	}
 
 	return body, structure
@@ -84,6 +109,25 @@ func (p *parser) parseBody(endType TokenType) Body {
 		// were structure elements that are not valid in this context.
 	}
 	return body
+}
+
+// parseText reads zero or more sequential LINE tokens, parses the result
+// as inline markup, and returns a Text value representing the inline
+// markup structure.
+func (p *parser) parseText() Text {
+	// This is currently just a placeholder implementation that doesn't
+	// do any parsing of inline markup, since we don't yet have an inline
+	// markup parser.
+	result := make(Text, 0, 1)
+	for {
+		next := p.Peek()
+		if next.Type != LINE {
+			break
+		}
+		token := p.Read()
+		result = append(result, CharData(token.Data))
+	}
+	return result
 }
 
 // Attempts to interpret the given token as the beginning of a bullet list
