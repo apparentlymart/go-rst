@@ -44,8 +44,7 @@ type Scanner struct {
 	// Keep track of all of the indent levels we've issued INDENT tokens
 	// for, so that we can issue symmetrical DEDENT tokens when we
 	// see shorter indents.
-	indents    []int
-	lateIndent bool
+	indents []int
 
 	literal    bool
 	lazyIndent bool
@@ -154,14 +153,8 @@ func (s *Scanner) next() *Token {
 	case s.nextIndent > currentIndent:
 		s.indents = append(s.indents, s.nextIndent)
 
-		tokenType := INDENT
-		if s.lateIndent {
-			tokenType = LATE_INDENT
-			s.lateIndent = false
-		}
-
 		return &Token{
-			Type: tokenType,
+			Type: INDENT,
 			Data: strings.Repeat(" ", s.nextIndent),
 			Position: Position{
 				Line:     s.nextToken.Position.Line,
@@ -178,7 +171,16 @@ func (s *Scanner) next() *Token {
 		// to adjust what it's been building to account for an extra
 		// level of indentation we didn't know about before.
 		if s.nextIndent > s.currentIndent() {
-			s.lateIndent = true
+			s.indents = append(s.indents, s.nextIndent)
+			return &Token{
+				Type: LATE_INDENT,
+				Data: strings.Repeat(" ", s.nextIndent),
+				Position: Position{
+					Line:     s.nextToken.Position.Line,
+					Column:   1,
+					Filename: s.nextToken.Position.Filename,
+				},
+			}
 		}
 
 		return &Token{

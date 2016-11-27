@@ -160,11 +160,6 @@ func TestScanner(t *testing.T) {
 					Position: Position{Line: 2, Column: 5},
 				},
 				{
-					Type:     DEDENT,
-					Data:     "",
-					Position: Position{Line: 3, Column: 3},
-				},
-				{
 					Type:     LATE_INDENT,
 					Data:     "  ",
 					Position: Position{Line: 3, Column: 1},
