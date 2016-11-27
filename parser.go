@@ -24,42 +24,24 @@ func (p *parser) ParseFragment() *Fragment {
 	}
 }
 
-func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
-	var body Body
-	var structure Structure
+// structureModelParser is a temporary helper construct used within the parser
+// to parse the "structure model": body elements followed by structure
+// elements, possibly with transitions interspersed.
+type structureModelParser struct {
+	parser          *parser
+	appendBody      func(BodyElement, Position)
+	appendStructure func(StructureElement, Position)
+	appendMixed     func(interface{}, Position)
 
-	// The following functions handle the two states that the following
-	// loop can find itself in.
-	var appendBody func(BodyElement, Position)
-	var appendStructure func(StructureElement, Position)
-	var appendMixed func(interface{}, Position)
+	// used when parsing blockquote bodies, to capture the attribution.
+	// if nil, attributions are not parsed.
+	// This will be called zero or one times, and if it is called there
+	// will be no more appendBody or appendStructure calls afterwards.
+	setAttribution func(Text, Position)
+}
 
-	// We start off in body context, and then the first time we encounter
-	// structural markup we transition in structural context and these
-	// functions change to respect that state.
-	appendBody = func(elem BodyElement, pos Position) {
-		body = append(body, elem)
-	}
-	appendStructure = func(elem StructureElement, pos Position) {
-		// transition into structure context
-		appendStructure = func(elem StructureElement, pos Position) {
-			structure = append(structure, elem)
-		}
-		appendBody = func(elem BodyElement, pos Position) {
-			appendStructure(&Error{
-				Message: "body elements may not appear after sections",
-				Pos:     pos,
-			}, pos)
-		}
-		appendMixed = func(elem interface{}, pos Position) {
-			appendStructure(elem.(StructureElement), pos)
-		}
-
-		appendStructure(elem, pos)
-	}
-	appendMixed = func(elem interface{}, pos Position) {
-		appendBody(elem.(BodyElement), pos)
-	}
+func (m *structureModelParser) parse(endType TokenType) {
+	p := m.parser
 
 	for {
 		p.SkipBlanks()
@@ -72,7 +54,7 @@ func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
 		}
 
 		if next.Type == EOF {
-			appendMixed(&Error{
+			m.appendMixed(&Error{
 				Message: "unexpected EOF",
 				Pos:     next.Position,
 			}, next.Position)
@@ -82,32 +64,90 @@ func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
 			startPos := next.Position
 			listElem := p.parseBulletList(marker)
-			appendBody(listElem, startPos)
+			m.appendBody(listElem, startPos)
 			continue
 		}
 
-		// If we get down here and still have a LINE token waiting then
-		// we'll interpret what follows as a plain paragraph.
 		if next.Type == LINE {
 			startPos := next.Position
 			text := p.parseText()
-			appendBody(&Paragraph{Text: text}, startPos)
+			m.appendBody(&Paragraph{Text: text}, startPos)
+			continue
 		}
+
+		// If we manage to get here then we've encountered a parser bug,
+		// since by this point we should've dealt with all possible situations.
+		p.Read() // Eat whatever is bothering us (TODO: seek forward to recover?)
+		m.appendMixed(&Error{
+			Message: "unexpected token: " + next.Type.String(),
+			Pos:     next.Position,
+		}, next.Position)
 	}
+}
+
+func (p *parser) parseStructureModel(endType TokenType) (Body, Structure) {
+	var body Body
+	var structure Structure
+
+	var model structureModelParser
+	model = structureModelParser{
+		parser: p,
+		appendBody: func(elem BodyElement, pos Position) {
+			body = append(body, elem)
+		},
+		appendStructure: func(elem StructureElement, pos Position) {
+			// transition into structure context
+			model.appendStructure = func(elem StructureElement, pos Position) {
+				structure = append(structure, elem)
+			}
+			model.appendBody = func(elem BodyElement, pos Position) {
+				model.appendStructure(&Error{
+					Message: "body elements may not appear after sections",
+					Pos:     pos,
+				}, pos)
+			}
+			model.blockQuoteBody = func(pos Position) {
+				model.appendStructure(&Error{
+					Message: "block quote cannot terminate here",
+					Pos:     pos,
+				}, pos)
+			}
+			model.appendMixed = func(elem interface{}, pos Position) {
+				model.appendStructure(elem.(StructureElement), pos)
+			}
+
+			model.appendStructure(elem, pos)
+		},
+		appendMixed: func(elem interface{}, pos Position) {
+			model.appendBody(elem.(BodyElement), pos)
+		},
+	}
+	model.parse(endType)
 
 	return body, structure
 }
 
 func (p *parser) parseBody(endType TokenType) Body {
-	body, structure := p.parseStructureModel(endType)
-	if structure != nil && len(structure) > 0 {
-		body = append(body, &Error{
-			Message: "structural element not permitted here",
-			Pos:     structure[0].Position(),
-		})
-		// TODO: append an error element to the body to report that there
-		// were structure elements that are not valid in this context.
+	var body Body
+
+	var model structureModelParser
+	model = structureModelParser{
+		parser: p,
+		appendBody: func(elem BodyElement, pos Position) {
+			body = append(body, elem)
+		},
+		appendStructure: func(elem StructureElement, pos Position) {
+			body = append(body, &Error{
+				Message: "structure elements may not appear here",
+				Pos:     pos,
+			})
+		},
+		appendMixed: func(elem interface{}, pos Position) {
+			model.appendBody(elem.(BodyElement), pos)
+		},
 	}
+	model.parse(endType)
+
 	return body
 }
 
