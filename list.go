@@ -7,11 +7,11 @@ type BulletList struct {
 
 type EnumeratedList struct {
 	bodyElementImpl
-	Items      []*ListItem
 	EnumType   EnumType
 	EnumPrefix string
 	EnumSuffix string
 	FirstIndex int
+	Items      []*ListItem
 }
 
 type ListItem struct {
