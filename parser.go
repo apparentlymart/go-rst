@@ -2,6 +2,7 @@ package rst
 
 import (
 	"io"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -115,6 +116,13 @@ func (m *structureModelParser) parse(endType TokenType) {
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
 			startPos := next.Position
 			listElem := p.parseBulletList(marker)
+			m.appendBody(listElem, startPos)
+			continue
+		}
+
+		if seq, marker, start, _ := p.detectEnumeratedListItem(next); seq != 0 {
+			startPos := next.Position
+			listElem := p.parseEnumeratedList(seq, marker, start)
 			m.appendBody(listElem, startPos)
 			continue
 		}
@@ -349,4 +357,181 @@ func (p *parser) parseBulletList(marker rune) BodyElement {
 	return &BulletList{
 		Items: items,
 	}
+}
+
+type enumSeq rune
+type enumMarker rune
+
+const (
+	enumSeqInvalid    enumSeq = 0
+	enumSeqArabic     enumSeq = '1'
+	enumSeqAlphaUpper enumSeq = 'A'
+	enumSeqAlphaLower enumSeq = 'a'
+	enumSeqRomanUpper enumSeq = 'I'
+	enumSeqRomanLower enumSeq = 'i'
+
+	enumMarkerInvalid enumMarker = 0
+	enumMarkerPeriod  enumMarker = '.'
+	enumMarkerParens  enumMarker = '('
+	enumMarkerRParen  enumMarker = ')'
+)
+
+// Attempts to interpret the given token as the beginning of an enumerated list
+// item.
+//
+// If it is, returns the sequence, marker type, item ordinal, and indent level.
+// If it is not, returns 0, 0, 0, 0.
+//
+// If it is, returns the bullet list marker and the number of bytes
+// of indent to require for subsequent lines. If it is not, returns
+// (0, 0).
+func (p *parser) detectEnumeratedListItem(next *Token) (enumSeq, enumMarker, int, int) {
+	if next.Type != LINE {
+		return 0, 0, 0, 0
+	}
+	if len(next.Data) < 2 {
+		return 0, 0, 0, 0
+	}
+
+	remain := next.Data
+	first := remain[0]
+	indent := 0
+	marker := enumMarkerInvalid
+
+	if first == '(' {
+		marker = enumMarkerParens
+		indent++
+		remain = remain[1:]
+		first = remain[0]
+	}
+
+	seq := enumSeqInvalid
+	ordinal := 0
+
+	switch {
+	case first >= '0' && first <= '9':
+		end := 0
+		for end = 0; end < len(remain); end++ {
+			if remain[end] < '0' || remain[end] > '9' {
+				break
+			}
+			end++
+		}
+		indent = indent + end - 1
+		num := remain[0 : end-1]
+		remain = remain[end-1:]
+
+		var err error
+		ordinal, err = strconv.Atoi(num)
+		if err != nil {
+			return 0, 0, 0, 0
+		}
+
+		seq = enumSeqArabic
+
+		//case first >= 'A' && first <= 'Z':
+
+		//case first >= 'a' && first <= 'z':
+
+	default:
+		return 0, 0, 0, 0
+	}
+
+	if len(remain) == 0 {
+		// If we have no more characters then there's no room for
+		// the closing marker punctuation, so this can't be a list item.
+		return 0, 0, 0, 0
+	}
+
+	closePunct := remain[0]
+
+	if marker == enumMarkerParens {
+		if closePunct != ')' {
+			return 0, 0, 0, 0
+		}
+	} else {
+		switch closePunct {
+		case ')':
+			marker = enumMarkerRParen
+		case '.':
+			marker = enumMarkerPeriod
+		default:
+			return 0, 0, 0, 0
+		}
+	}
+
+	indent++
+	remain = remain[1:]
+
+	if len(remain) > 0 {
+		if remain[0] != ' ' {
+			return 0, 0, 0, 0
+		}
+		indent++
+	}
+
+	return seq, marker, ordinal, indent
+
+}
+
+func (p *parser) parseEnumeratedList(seq enumSeq, marker enumMarker, start int) BodyElement {
+	nextOrd := start
+	items := make([]*ListItem, 0, 2)
+	for {
+		p.SkipBlanks()
+		next := p.Peek()
+		itemSeq, itemMarker, ord, indent := p.detectEnumeratedListItem(next)
+		if itemSeq != seq || itemMarker != marker || ord != nextOrd {
+			// next is either not a list item or belongs to a different list
+			break
+		}
+		nextOrd++
+
+		firstLine := p.Read()
+
+		// Let the scanner know that the subsequent lines will be indented
+		// to align with the first character of the first line.
+		p.PushIndent(indent)
+
+		// Push back our first-line token with the prefix removed
+		// so that p.parseBody can re-read it.
+		p.PushBackSuffix(firstLine, indent)
+
+		itemContent := p.parseBody(DEDENT)
+		items = append(items, &ListItem{itemContent})
+	}
+
+	list := &EnumeratedList{
+		Items:      items,
+		FirstIndex: start,
+	}
+
+	switch seq {
+	case enumSeqArabic:
+		list.EnumType = EnumArabic
+	case enumSeqAlphaUpper:
+		list.EnumType = EnumUpperAlpha
+	case enumSeqAlphaLower:
+		list.EnumType = EnumLowerAlpha
+	case enumSeqRomanUpper:
+		list.EnumType = EnumUpperRoman
+	case enumSeqRomanLower:
+		list.EnumType = EnumLowerRoman
+	default:
+		panic("invalid enum seq")
+	}
+
+	switch marker {
+	case enumMarkerPeriod:
+		list.EnumSuffix = "."
+	case enumMarkerParens:
+		list.EnumPrefix = "("
+		list.EnumSuffix = ")"
+	case enumMarkerRParen:
+		list.EnumSuffix = ")"
+	default:
+		panic("invalid enum marker")
+	}
+
+	return list
 }

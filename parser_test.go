@@ -70,6 +70,90 @@ func TestParseFragment(t *testing.T) {
 			},
 		},
 		{
+			"1. foo\n2. bar\n(3) baz\n(5) pizza\n6) cheese",
+			&Fragment{
+				Body: Body{
+					&EnumeratedList{
+						EnumType:   EnumArabic,
+						EnumPrefix: "",
+						EnumSuffix: ".",
+						FirstIndex: 1,
+						Items: []*ListItem{
+							{
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("foo"),
+										},
+									},
+								},
+							},
+							{
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("bar"),
+										},
+									},
+								},
+							},
+						},
+					},
+					&EnumeratedList{
+						EnumType:   EnumArabic,
+						EnumPrefix: "(",
+						EnumSuffix: ")",
+						FirstIndex: 3,
+						Items: []*ListItem{
+							{
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("baz"),
+										},
+									},
+								},
+							},
+						},
+					},
+					&EnumeratedList{
+						EnumType:   EnumArabic,
+						EnumPrefix: "(",
+						EnumSuffix: ")",
+						FirstIndex: 5,
+						Items: []*ListItem{
+							{
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("pizza"),
+										},
+									},
+								},
+							},
+						},
+					},
+					&EnumeratedList{
+						EnumType:   EnumArabic,
+						EnumPrefix: "",
+						EnumSuffix: ")",
+						FirstIndex: 6,
+						Items: []*ListItem{
+							{
+								Body: Body{
+									&Paragraph{
+										Text: Text{
+											CharData("cheese"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			"    blockquote\n    baz",
 			&Fragment{
 				Body: Body{
