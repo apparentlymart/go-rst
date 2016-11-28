@@ -109,6 +109,17 @@ func (s *Scanner) SkipBlanks() {
 	}
 }
 
+// Eat consumes the next token, and panics if it is not of the given type.
+//
+// This is used to declare that any other token type indicates a bug in
+// the program.
+func (s *Scanner) Eat(wantType TokenType) {
+	token := s.Read()
+	if token.Type != wantType {
+		panic("wanted " + wantType.String() + " but got " + token.Type.String())
+	}
+}
+
 // next produces the next token in the token stream, which will either be
 // a real token obtained from s.nextToken or it will be a synthetic token
 // to adjust the indent level to match s.nextIndent.
