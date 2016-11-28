@@ -111,6 +111,25 @@ func TestParseFragment(t *testing.T) {
 				},
 			},
 		},
+		{
+			"    quote\n\n    -- attribution",
+			&Fragment{
+				Body: Body{
+					&BlockQuote{
+						Quote: Body{
+							&Paragraph{
+								Text: Text{
+									CharData("quote"),
+								},
+							},
+						},
+						Attribution: Text{
+							CharData("attribution"),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	spewConfig := &spew.ConfigState{

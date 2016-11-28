@@ -2,6 +2,7 @@ package rst
 
 import (
 	"io"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -36,9 +37,7 @@ type structureModelParser struct {
 
 	// used when parsing blockquote bodies, to capture the attribution.
 	// if nil, attributions are not parsed.
-	// This will be called zero or one times, and if it is called there
-	// will be no more appendBody or appendStructure calls afterwards.
-	setAttribution func(Text, Position)
+	appendAttribution func(content Text, pos Position)
 }
 
 func (m *structureModelParser) parse(endType TokenType) {
@@ -63,9 +62,15 @@ func (m *structureModelParser) parse(endType TokenType) {
 		}
 
 		if next.Type == INDENT {
+			// An indent signals the beginning of a blockquote.
+			// The parsing function for blockquotes can potentially return
+			// multiple blockquotes if there is a chain of them separated by
+			// attribution markers.
 			startPos := next.Position
-			blockQuoteElem := p.parseBlockQuote(DEDENT)
-			m.appendBody(blockQuoteElem, startPos)
+			blockQuoteElems := p.parseBlockQuotes(DEDENT)
+			for _, elem := range blockQuoteElems {
+				m.appendBody(elem, startPos)
+			}
 			continue
 		}
 
@@ -78,6 +83,33 @@ func (m *structureModelParser) parse(endType TokenType) {
 			p.Read() // eat LATE_INDENT token
 			m.blockQuoteBody(next.Position)
 			continue
+		}
+
+		// Only look for attribution syntax if the caller provided an
+		// event handler for it.
+		if m.appendAttribution != nil && next.Type == LINE {
+			if strings.HasPrefix(next.Data, "--") {
+				nextChar, ncLen := utf8.DecodeRuneInString(next.Data[2:])
+				if unicode.IsSpace(nextChar) {
+					firstLine := p.Read()
+					startPos := firstLine.Position
+					p.PushIndent(ncLen + 2)
+					p.PushBackSuffix(firstLine, ncLen+2)
+					attribution := p.parseText()
+
+					if p.Peek().Type == DEDENT {
+						p.Eat(DEDENT)
+					} else {
+						m.appendMixed(&Error{
+							Message: "missing dedent after attribution",
+							Pos:     startPos,
+						}, startPos)
+					}
+
+					m.appendAttribution(attribution, startPos)
+					continue
+				}
+			}
 		}
 
 		if marker, _ := p.detectBulletListItem(next); marker != 0 {
@@ -184,47 +216,58 @@ func (p *parser) parseBody(endType TokenType) Body {
 	return body
 }
 
-func (p *parser) parseBlockQuote(endType TokenType) BodyElement {
+func (p *parser) parseBlockQuotes(endType TokenType) Body {
 	indent := p.Read()
 	if indent.Type != INDENT {
 		// should never happen, given a correct caller
 		panic("parseBlockQuote called when block quote can't start")
 	}
 
-	var body Body
-	var attribution Text
+	var current *BlockQuote
+	quotes := make(Body, 0, 1)
+
+	ensureCurrent := func() {
+		if current == nil {
+			current = &BlockQuote{}
+			quotes = append(quotes, current)
+		}
+	}
 
 	var model structureModelParser
 	model = structureModelParser{
 		parser: p,
 		appendBody: func(elem BodyElement, pos Position) {
-			body = append(body, elem)
+			ensureCurrent()
+			current.Quote = append(current.Quote, elem)
 		},
 		blockQuoteBody: func(pos Position) {
-			body = Body{
+			ensureCurrent()
+			current.Quote = Body{
 				&BlockQuote{
-					Quote: body,
+					Quote: current.Quote,
 				},
 			}
 		},
 		appendStructure: func(elem StructureElement, pos Position) {
-			body = append(body, &Error{
+			model.appendBody(&Error{
 				Message: "structure elements may not appear here",
 				Pos:     pos,
-			})
+			}, pos)
 		},
 		appendMixed: func(elem interface{}, pos Position) {
 			model.appendBody(elem.(BodyElement), pos)
 		},
-		setAttribution: func(elem Text, pos Position) {
-			attribution = elem
+		appendAttribution: func(elem Text, pos Position) {
+			current.Attribution = elem
+
+			// an attribution signals the end of the current quote.
+			// any further elements will begin another.
+			current = nil
 		},
 	}
 	model.parse(endType)
-	return &BlockQuote{
-		Quote:       body,
-		Attribution: attribution,
-	}
+
+	return quotes
 }
 
 // parseText reads zero or more sequential LINE tokens, parses the result
